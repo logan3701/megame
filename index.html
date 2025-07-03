@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scratcher Game with New Creative Tickets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bubblegum+Sans&family=Inter:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif; /* Inter as primary, Bubblegum Sans for specific elements */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Default background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #fff;
+            transition: background 0.5s ease-in-out; /* Smooth background transitions */
+        }
+
+        .game-container {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 850px;
+            width: 100%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #fff;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        #money-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 25px;
+            color: #ffdd44; /* Gold color for money */
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            cursor: pointer; /* Indicate it's clickable */
+            transition: transform 0.2s ease-in-out;
+        }
+
+        #money-display:hover {
+            transform: scale(1.05);
+        }
+
+        #bonus-indicator {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ff4444; /* Red color for bonus */
+            margin-bottom: 10px;
+            display: none; /* Hidden by default */
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+
+        /* Styles for the game canvas */
+        canvas {
+            background-color: #f0f0f0; /* Background for the revealed symbols */
+            border: 5px solid #ffdd44;
+            border-radius: 15px;
+            cursor: pointer; /* Change cursor to pointer for clickable cells */
+            touch-action: manipulation; /* Allow touch taps without delay */
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+            width: 100%; /* Make canvas responsive */
+            height: auto; /* Maintain aspect ratio */
+            max-width: 400px; /* Max width for desktop */
+            aspect-ratio: 1 / 1; /* Square aspect ratio for a 3x3 grid or bald buddies */
+            margin-bottom: 25px;
+            display: none; /* Hidden by default when in store view */
+        }
+
+        /* Styles for the ticket store */
+        .ticket-store {
+            display: flex; /* Use flexbox for horizontal layout */
+            flex-wrap: wrap; /* Allow items to wrap to the next line */
+            justify-content: center; /* Center items horizontally */
+            gap: 8px; /* Reduced space between ticket cards */
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .ticket-card {
+            background-color: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 6px; /* Reduced padding */
+            width: 90px; /* Further reduced width for each card */
+            height: 130px; /* Adjusted height proportionally */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .ticket-card:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .ticket-card:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .ticket-card.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: rgba(255, 255, 255, 0.05);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .ticket-thumbnail {
+            font-size: 2.5rem; /* Adjusted font size for smaller cards */
+            margin-bottom: 3px; /* Reduced margin */
+        }
+
+        .ticket-name {
+            font-size: 0.9rem; /* Reduced font size */
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+            height: 40px; /* Fixed height for two lines of text */
+            line-height: 1.1; /* Tighter line height */
+            white-space: normal; /* Ensure text wraps */
+            word-break: break-word; /* Break long words if necessary */
+            overflow: hidden; /* Hide any overflow if text is still too long */
+        }
+
+        .ticket-price {
+            font-size: 0.8rem; /* Reduced font size */
+            color: #ffdd44;
+            font-weight: bold;
+        }
+
+        /* Shop specific styles */
+        #shopContainer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .shop-item-card {
+            background-color: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 10px;
+            width: 120px;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .shop-item-card:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .shop-item-card.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: rgba(255, 255, 255, 0.05);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .shop-item-card.owned {
+            border-color: #28a745; /* Green border for owned items */
+        }
+
+        .shop-item-card.active {
+            border-color: #ffdd44; /* Gold border for active item */
+            box-shadow: 0 0 15px 5px rgba(255, 221, 68, 0.5); /* Glowing effect */
+        }
+
+        .shop-item-thumbnail {
+            font-size: 3rem;
+            margin-bottom: 5px;
+        }
+
+        .shop-item-name {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+            line-height: 1.2;
+            height: 40px;
+            overflow: hidden;
+        }
+
+        .shop-item-price {
+            font-size: 0.85rem;
+            color: #ffdd44;
+            font-weight: bold;
+        }
+
+        .shop-item-status {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 2px 5px;
+            border-radius: 5px;
+            color: #fff;
+        }
+
+        /* General button style */
+        .general-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5253);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin-top: 20px; /* Space from canvas */
+        }
+
+        .general-btn:hover {
+            background: linear-gradient(45deg, #ee5253, #ff6b6b);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .general-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        #message-box {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+            animation: fadeIn 0.5s ease-out;
+            width: 80%;
+            max-width: 350px;
+            word-wrap: break-word;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+            .game-container {
+                padding: 20px;
+            }
+            .ticket-card {
+                width: 80px; /* Even smaller cards on mobile */
+                height: 120px; /* Adjusted height for mobile */
+                padding: 5px; /* Adjusted padding for mobile */
+            }
+            .ticket-thumbnail {
+                font-size: 2rem; /* Adjusted font size for mobile */
+            }
+            .ticket-name {
+                font-size: 0.75rem; /* Adjusted font size for mobile */
+                height: 35px; /* Fixed height for 2 lines on mobile */
+            }
+            .ticket-price {
+                font-size: 0.65rem; /* Adjusted font size for mobile */
+            }
+            canvas {
+                max-width: 300px;
+            }
+            .shop-item-card {
+                width: 100px;
+                height: 130px;
+                padding: 8px;
+            }
+            .shop-item-thumbnail {
+                font-size: 2.5rem;
+            }
+            .shop-item-name {
+                font-size: 0.85rem;
+            }
+            .shop-item-price {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Scratcher Store</h1>
+        <div id="money-display">$250</div>
+        <div id="bonus-indicator" class="hidden"></div>
+
+        <!-- The Scratching Canvas (hidden by default) -->
+        <canvas id="scratcherCanvas"></canvas>
+
+        <!-- The Store View -->
+        <div id="ticketStore" class="ticket-store">
+            <!-- Ticket cards will be dynamically generated here by JavaScript -->
+        </div>
+
+        <!-- The Shop View -->
+        <div id="shopContainer" class="hidden">
+            <h2>Cosmetic Shop</h2>
+            <div id="shopItemsGrid" class="ticket-store">
+                <!-- Shop items will be dynamically generated here by JavaScript -->
+            </div>
+            <button id="shopBackToStoreBtn" class="general-btn">Back to Store</button>
+        </div>
+
+        <!-- A "Got It!" button for dismissing instructions -->
+        <button id="dismissInstructionsBtn" class="general-btn hidden">Got It!</button>
+
+        <!-- A "Back to Store" button, shown after a game ends (currently hidden and not directly used for navigation after game ends) -->
+        <button id="backToStoreBtn" class="general-btn hidden">Back to Store</button>
+
+        <div id="message-box" class="mt-4 p-3 rounded-lg text-center"></div>
+    </div>
+
+    <script>
+        // Get references to DOM elements
+        const canvas = document.getElementById('scratcherCanvas');
+        const ctx = canvas.getContext('2d');
+        const moneyDisplay = document.getElementById('money-display');
+        const bonusIndicator = document.getElementById('bonus-indicator'); // New bonus indicator
+        const ticketStoreDiv = document.getElementById('ticketStore');
+        const shopContainer = document.getElementById('shopContainer'); // New shop container
+        const shopItemsGrid = document.getElementById('shopItemsGrid'); // New shop items grid
+        const shopBackToStoreBtn = document.getElementById('shopBackToStoreBtn'); // New shop back button
+        const backToStoreBtn = document.getElementById('backToStoreBtn'); // This button is currently unused for explicit navigation
+        const dismissInstructionsBtn = document.getElementById('dismissInstructionsBtn'); // New button for instructions
+        const messageBox = document.getElementById('message-box');
+        const body = document.body; // Reference to the body for background changes
+
+        // Global variables for game state
+        let userMoney = 250; // Starting money
+        let gameOver = true; // Game starts as over, user needs to buy a ticket
+        let currentTicketPrize = 0; // The prize value for the current ticket if won
+        let currentTicketType = null; // Stores the type of the currently active ticket
+        let messageTimeout; // To store the timeout ID for auto-hiding messages
+
+        // Bonus/Charm states
+        let nextWinBonus = 1; // Multiplier for next win, default is 1 (no bonus)
+        let luckyCharmActive = false;
+        let luckyCharmUses = 0;
+
+        // Cosmetic states - store itemId of active cosmetic for each subtype
+        let activeCosmetics = {
+            background: 'bg_default',
+            canvasBorder: 'border_default', // Default border state
+            revealedFont: 'font_default' // Default font state
+        };
+
+        // --- Game-specific variables ---
+
+        // For Bald Buddies game
+        let baldBuddies = []; // Array to hold the state of each person { x, y, radius, isScratchable, isBald }
+        const numBuddies = 3; // Always 3 people for Bald Buddies
+
+        // For Uno Scratcher game
+        let unoCards = []; // Array to hold the state of each Uno card { color, number, isScratched }
+        let winningUnoCard = null; // The target card to match
+        const unoColors = ['red', 'green', 'blue', 'yellow'];
+        const unoNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]; // Excluding 0 for simplicity for now
+        const unoGridRows = 3;
+        const unoGridCols = 3;
+
+        // For Simple Reveal games
+        let simpleRevealCells = []; // Array to hold state for simple reveal games
+        let simpleRevealWinState = false; // Whether the current simple reveal ticket is a winner (overall ticket win/loss)
+
+        // Define different ticket types with their properties
+        const ticketDefinitions = {
+            baldBuddies: {
+                name: 'Bald Buddies',
+                price: 8,
+                thumbnail: '👨‍🦲', // Emoji for bald person
+                winningPrizes: [150, 300, 750],
+                gameType: 'baldBuddies', // New game type
+                instructions: 'Click on each person\'s hair to scratch it off. If all three buddies become bald, you win!'
+            },
+            unoScratcher: {
+                name: 'Uno Scratcher',
+                price: 12,
+                thumbnail: '🃏', // Card emoji
+                winningPrizes: [200, 400, 800],
+                gameType: 'unoScratcher', // New game type
+                instructions: 'Scratch to reveal Uno cards. Find the card that matches the Winning Card (both color and number) to win!'
+            },
+            // --- NEW CREATIVE TICKETS (15 total) ---
+            cashVault: {
+                name: 'Cash Vault',
+                price: 4,
+                thumbnail: '💰',
+                winningPrizes: [25, 50, 100],
+                gameType: 'simpleReveal',
+                numCells: 5, // Number of scratchable spots
+                contentOptions: ['1', '2', '3', '4', '5', '6', '8', '9', '0'], // Possible numbers
+                winningContent: '7', // Specific winning number
+                winCount: 1, // Need to find at least one '7'
+                instructions: 'Scratch all 5 spots. If any revealed number is a 7, you win!'
+            },
+            luckyNumber: {
+                name: 'Lucky Number',
+                price: 2,
+                thumbnail: '🔢',
+                winningPrizes: [10, 20, 40],
+                gameType: 'simpleReveal',
+                numCells: 2, // Your Number, Winning Number
+                contentOptions: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                winConditionLogic: (cells, prize) => { // Custom logic for this ticket
+                    if (cells[0].content && cells[1].content && cells[0].isScratched && cells[1].isScratched) {
+                        return cells[0].content === cells[1].content;
+                    }
+                    return false;
+                },
+                instructions: 'Scratch to reveal Your Number and the Winning Number. If they match, you win!'
+            },
+            diceRoll: {
+                name: 'Dice Roll',
+                price: 3,
+                thumbnail: '🎲',
+                winningPrizes: [15, 30, 60],
+                gameType: 'simpleReveal',
+                numCells: 2, // Two dice
+                contentOptions: ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'], // Dice emojis
+                winConditionLogic: (cells, prize) => { // Custom logic for this ticket
+                    const diceValues = { '⚀':1, '⚁':2, '⚂':3, '⚃':4, '⚄':5, '⚅':6 };
+                    if (cells[0].content && cells[1].content && cells[0].isScratched && cells[1].isScratched) {
+                        const sum = diceValues[cells[0].content] + diceValues[cells[1].content];
+                        return sum === 7 || sum === 11;
+                    }
+                    return false;
+                },
+                instructions: 'Scratch to reveal two dice. If their sum is 7 or 11, you win!'
+            },
+            bonusWheel: {
+                name: 'Bonus Wheel',
+                price: 5,
+                thumbnail: '🎡',
+                winningPrizes: [50, 100, 200],
+                gameType: 'simpleReveal',
+                numCells: 1, // One spot to scratch
+                contentOptions: ['BONUS', 'TRY AGAIN', 'NO PRIZE'],
+                winningContent: 'BONUS',
+                winCount: 1,
+                instructions: 'Scratch the spinning wheel. If it lands on "BONUS", you win!'
+            },
+            findTheKey: {
+                name: 'Find the Key',
+                price: 7,
+                thumbnail: '🔑',
+                winningPrizes: [75, 150, 300],
+                gameType: 'simpleReveal',
+                numCells: 5,
+                contentOptions: ['❌', '⭕', '⭐', '💎'],
+                winningContent: '🔑',
+                winCount: 1,
+                instructions: 'Scratch all 5 spots. Find the hidden key to unlock a prize!'
+            },
+            powerPlay: {
+                name: 'Power Play',
+                price: 4,
+                thumbnail: '⚡',
+                winningPrizes: [30, 60, 120],
+                gameType: 'simpleReveal',
+                numCells: 3, // Your number, winning number, multiplier
+                contentOptions: ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
+                winConditionLogic: (cells, prize) => {
+                    if (cells.length === 3 && cells[0].content === cells[1].content) { // Your Number matches Winning Number
+                        return true;
+                    }
+                    return false;
+                },
+                instructions: 'Scratch to reveal Your Number and the Winning Number. If they match, you win!'
+            },
+            coinFlip: {
+                name: 'Coin Flip',
+                price: 2,
+                thumbnail: '🪙',
+                winningPrizes: [10, 20, 50],
+                gameType: 'simpleReveal',
+                numCells: 1, // One coin to flip
+                contentOptions: ['HEADS', 'TAILS'], // Keep text for logic, map to emoji for display
+                winningContent: 'HEADS', // Arbitrarily set HEADS as winning side
+                winCount: 1,
+                instructions: 'Scratch to reveal Heads or Tails. Match the winning side to win!'
+            },
+            highCard: {
+                name: 'High Card',
+                price: 5,
+                thumbnail: '♠️',
+                winningPrizes: [40, 80, 160],
+                gameType: 'simpleReveal',
+                numCells: 2, // Your Card, Dealer's Card
+                contentOptions: ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'],
+                cardValues: { '2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, 'J':11, 'Q':12, 'K':13, 'A':14 },
+                winConditionLogic: (cells, prize) => {
+                    if (cells[0].content && cells[1].content && cells[0].isScratched && cells[1].isScratched) {
+                        return ticketDefinitions.highCard.cardValues[cells[0].content] > ticketDefinitions.highCard.cardValues[cells[1].content];
+                    }
+                    return false;
+                },
+                instructions: 'Scratch Your Card and the Dealer\'s Card. If Your Card is higher, you win!'
+            },
+            lucky7s: {
+                name: 'Lucky 7s',
+                price: 3,
+                thumbnail: '7️⃣',
+                winningPrizes: [20, 40, 80],
+                gameType: 'simpleReveal',
+                numCells: 3,
+                contentOptions: ['1', '2', '3', '4', '5', '6', '8', '9', '0'],
+                winningContent: '7',
+                winCount: 1,
+                instructions: 'Scratch all three spots. If any 7 appears, you win!'
+            },
+            mysteryBox: {
+                name: 'Mystery Box',
+                price: 6,
+                thumbnail: '📦',
+                winningPrizes: [60, 120, 240],
+                gameType: 'simpleReveal',
+                numCells: 3,
+                contentOptions: ['❓', '❌', '🚫'],
+                winningContent: '✅',
+                winCount: 1,
+                instructions: 'Choose and scratch one of the three mystery boxes. One contains a prize!'
+            },
+            gemstoneMatch: {
+                name: 'Gemstone Match',
+                price: 7,
+                thumbnail: '✨',
+                winningPrizes: [80, 160, 320],
+                gameType: 'simpleReveal',
+                numCells: 6,
+                contentOptions: ['🔴', '🔵', '🟢', '🟡', '🟣'],
+                winConditionLogic: (cells, prize) => {
+                    const revealedGems = cells.filter(cell => cell.isScratched).map(cell => cell.content);
+                    const counts = {};
+                    for (const gem of revealedGems) {
+                        counts[gem] = (counts[gem] || 0) + 1;
+                        if (counts[gem] >= 2) return true; // Found a pair
+                    }
+                    return false;
+                },
+                instructions: 'Scratch to reveal 6 gemstones. Find two identical gems to win!'
+            },
+            starGazer: {
+                name: 'Star Gazer',
+                price: 5,
+                thumbnail: '�',
+                winningPrizes: [45, 90, 180],
+                gameType: 'simpleReveal',
+                numCells: 4,
+                contentOptions: ['⭐', '✨', '💫'],
+                winningContent: '☄️', // Shooting star emoji
+                winCount: 1,
+                instructions: 'Scratch all four stars. Reveal a shooting star to win!'
+            },
+            goldenTicket: {
+                name: 'Golden Ticket',
+                price: 10,
+                thumbnail: '🎟️',
+                winningPrizes: [250, 500, 1000],
+                gameType: 'simpleReveal',
+                numCells: 1,
+                contentOptions: ['SORRY', 'NO LUCK'],
+                winningContent: 'GOLDEN TICKET!',
+                winCount: 1,
+                instructions: 'Scratch to see if you revealed the elusive Golden Ticket!'
+            },
+            moneyTree: {
+                name: 'Money Tree',
+                price: 8,
+                thumbnail: '🌳',
+                winningPrizes: [100, 200, 400],
+                gameType: 'simpleReveal',
+                numCells: 9, // 3x3 grid of leaves
+                contentOptions: ['🍂', '🍃', '🌿'],
+                winningContent: '💰', // Money bag emoji
+                winCount: 3, // Need to find 3 money bags
+                instructions: 'Scratch the leaves on the Money Tree. Find 3 money bags to win!'
+            }
+        };
+
+        // --- Shop Items Definition ---
+        const shopItems = {
+            'bg_default': {
+                name: 'Default Theme',
+                price: 0,
+                type: 'background',
+                value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                thumbnail: '🌌',
+                purchased: true, // Default is always owned
+                active: true
+            },
+            'bg_ocean': {
+                name: 'Ocean Dream',
+                price: 750, // Increased price
+                type: 'background',
+                value: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                thumbnail: '🌊',
+                purchased: false,
+                active: false
+            },
+            'bg_sunset': {
+                name: 'Sunset Glow',
+                price: 1125, // Increased price
+                type: 'background',
+                value: 'linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%)',
+                thumbnail: '🌅',
+                purchased: false,
+                active: false
+            },
+            'bg_forest': {
+                name: 'Enchanted Forest',
+                price: 1500, // Increased price
+                type: 'background',
+                value: 'linear-gradient(135deg, #28b463 0%, #1e8449 100%)',
+                thumbnail: '🌳',
+                purchased: false,
+                active: false
+            },
+            'bg_galaxy': {
+                name: 'Deep Space',
+                price: 3000, // Increased price
+                type: 'background',
+                value: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
+                thumbnail: '🌠',
+                purchased: false,
+                active: false
+            },
+            'bonus_5x': {
+                name: '5x Bonus',
+                price: 1000,
+                type: 'bonus',
+                consumable: true,
+                multiplier: 5,
+                thumbnail: '⭐',
+                purchased: false,
+                active: false
+            },
+            'bonus_10x': {
+                name: '10x Bonus',
+                price: 2500,
+                type: 'bonus',
+                consumable: true,
+                multiplier: 10,
+                thumbnail: '🌟',
+                purchased: false,
+                active: false
+            },
+            'bonus_20x': {
+                name: '20x Bonus',
+                price: 5000,
+                type: 'bonus',
+                consumable: true,
+                multiplier: 20,
+                thumbnail: '✨',
+                purchased: false,
+                active: false
+            },
+            'lucky_charm': {
+                name: 'Lucky Charm',
+                price: 1500,
+                type: 'charm',
+                consumable: true,
+                uses: 3, // Number of games it lasts
+                winChanceBoost: 0.10, // 10% increase in win chance (e.g., from 0.3 to 0.4)
+                thumbnail: '🍀',
+                purchased: false,
+                active: false
+            },
+            'border_default': { // Added a default border item for consistency
+                name: 'Default Border',
+                price: 0,
+                type: 'visual_effect',
+                subtype: 'canvasBorder',
+                value: '#ffdd44',
+                thumbnail: '⬜',
+                purchased: true,
+                active: true
+            },
+            'border_gold': {
+                name: 'Golden Border',
+                price: 750,
+                type: 'visual_effect',
+                subtype: 'canvasBorder',
+                value: '#FFD700', // Gold color
+                thumbnail: '⚜️',
+                purchased: false,
+                active: false
+            },
+            'font_default': { // Added a default font item for consistency
+                name: 'Default Font',
+                price: 0,
+                type: 'visual_effect',
+                subtype: 'revealedFont',
+                value: "'Bubblegum Sans', cursive", // Default font
+                thumbnail: '🔠',
+                purchased: true,
+                active: true
+            },
+            'font_fancy': {
+                name: 'Fancy Font',
+                price: 1200,
+                type: 'visual_effect',
+                subtype: 'revealedFont',
+                value: "'Bubblegum Sans', cursive", // This is already the default, but can be a different one if desired
+                thumbnail: '✒️',
+                purchased: false,
+                active: false
+            }
+        };
+
+        /**
+         * Renders the ticket store by creating clickable cards for each ticket type.
+         */
+        function renderTicketStore() {
+            ticketStoreDiv.innerHTML = ''; // Clear previous cards
+            for (const key in ticketDefinitions) {
+                const ticket = ticketDefinitions[key];
+                const card = document.createElement('div');
+                card.classList.add('ticket-card');
+                card.dataset.ticketType = key; // Store the ticket type key
+
+                // Disable card if not enough money
+                if (userMoney < ticket.price) {
+                    card.classList.add('disabled');
+                }
+
+                card.innerHTML = `
+                    <div class="ticket-thumbnail">${ticket.thumbnail}</div>
+                    <div class="ticket-name">${ticket.name}</div>
+                    <div class="ticket-price">$${ticket.price}</div>
+                `;
+                card.addEventListener('click', () => {
+                    if (userMoney >= ticket.price) {
+                        buyTicket(key);
+                    } else {
+                        showMessageBox(`Not enough money for ${ticket.name}!`, 2000);
+                    }
+                });
+                ticketStoreDiv.appendChild(card);
+            }
+        }
+
+        /**
+         * Renders the shop items.
+         */
+        function renderShop() {
+            shopItemsGrid.innerHTML = ''; // Clear previous items
+            for (const key in shopItems) {
+                const item = shopItems[key];
+                const card = document.createElement('div');
+                card.classList.add('shop-item-card');
+                card.dataset.itemId = key;
+
+                let statusText = '';
+                let priceText = `$${item.price}`;
+
+                if (item.type === 'background' || item.type === 'visual_effect') {
+                    if (item.purchased) {
+                        card.classList.add('owned');
+                        if (item.active) {
+                            card.classList.add('active');
+                            statusText = 'ACTIVE';
+                            priceText = 'Equipped';
+                        } else {
+                            statusText = 'OWNED';
+                            priceText = 'Equip';
+                        }
+                    } else if (userMoney < item.price) {
+                        card.classList.add('disabled');
+                    }
+                } else if (item.type === 'bonus') {
+                    if (item.active) {
+                        card.classList.add('active');
+                        statusText = 'READY';
+                        priceText = 'Active';
+                    } else if (userMoney < item.price) {
+                        card.classList.add('disabled');
+                    }
+                } else if (item.type === 'charm') {
+                    if (item.active) {
+                        card.classList.add('active');
+                        statusText = `ACTIVE (${luckyCharmUses} uses)`;
+                        priceText = 'Active';
+                    } else if (userMoney < item.price) {
+                        card.classList.add('disabled');
+                    }
+                }
+
+
+                card.innerHTML = `
+                    <div class="shop-item-thumbnail">${item.thumbnail}</div>
+                    <div class="shop-item-name">${item.name}</div>
+                    <div class="shop-item-price">${priceText}</div>
+                    ${statusText ? `<div class="shop-item-status">${statusText}</div>` : ''}
+                `;
+
+                card.addEventListener('click', () => {
+                    handleShopItemClick(key);
+                });
+                shopItemsGrid.appendChild(card);
+            }
+        }
+
+        /**
+         * Handles clicking on a shop item.
+         * @param {string} itemId - The ID of the shop item clicked.
+         */
+        function handleShopItemClick(itemId) {
+            const item = shopItems[itemId];
+
+            if (!item) return;
+
+            if (item.type === 'background' || item.type === 'visual_effect') {
+                if (item.purchased) {
+                    // If owned, toggle active state
+                    if (item.active) {
+                        // Cannot unequip the default cosmetic for its subtype
+                        if (itemId !== `${item.subtype}_default`) {
+                            item.active = false;
+                            shopItems[`${item.subtype}_default`].active = true;
+                            activeCosmetics[item.subtype] = `${item.subtype}_default`;
+                            applyCosmetic(`${item.subtype}_default`);
+                            showMessageBox(`${item.name} unequipped. Default ${item.subtype.replace('canvas', '').replace('revealed', '').toLowerCase()} applied.`, 2000);
+                        } else {
+                            showMessageBox(`Default ${item.subtype.replace('canvas', '').replace('revealed', '').toLowerCase()} cannot be unequipped.`, 2000);
+                        }
+                    } else {
+                        // Deactivate current active item of the same type
+                        if (activeCosmetics[item.subtype]) {
+                            shopItems[activeCosmetics[item.subtype]].active = false;
+                        }
+                        item.active = true;
+                        activeCosmetics[item.subtype] = itemId;
+                        applyCosmetic(itemId);
+                        showMessageBox(`${item.name} equipped!`, 2000);
+                    }
+                } else {
+                    // If not owned, try to buy
+                    if (userMoney >= item.price) {
+                        userMoney -= item.price;
+                        item.purchased = true;
+                        // Automatically equip after purchase
+                        if (activeCosmetics[item.subtype]) {
+                            shopItems[activeCosmetics[item.subtype]].active = false;
+                        }
+                        item.active = true;
+                        activeCosmetics[item.subtype] = itemId;
+                        applyCosmetic(itemId);
+                        updateMoneyDisplay();
+                        showMessageBox(`You bought and equipped ${item.name}!`, 3000);
+                    } else {
+                        showMessageBox(`Not enough money for ${item.name}! You need $${item.price}.`, 2000);
+                    }
+                }
+            } else if (item.type === 'bonus') {
+                if (item.active) {
+                    showMessageBox('Bonus is already active for your next win!', 2000);
+                } else if (userMoney >= item.price) {
+                    userMoney -= item.price;
+                    // Deactivate any other active bonus items
+                    for (const bonusKey in shopItems) {
+                        if (shopItems[bonusKey].type === 'bonus' && shopItems[bonusKey].active) {
+                            shopItems[bonusKey].active = false;
+                        }
+                    }
+                    nextWinBonus = item.multiplier; // Set the bonus multiplier
+                    item.active = true; // Mark bonus item as active (ready to be used)
+                    updateMoneyDisplay();
+                    updateGlobalIndicators();
+                    showMessageBox(`${item.name} ACTIVATED! Your next win will be multiplied!`, 3000);
+                } else {
+                    showMessageBox(`Not enough money for ${item.name}! You need $${item.price}.`, 2000);
+                }
+            } else if (item.type === 'charm') {
+                if (luckyCharmActive) {
+                    showMessageBox('Lucky Charm is already active!', 2000);
+                } else if (userMoney >= item.price) {
+                    userMoney -= item.price;
+                    luckyCharmActive = true;
+                    luckyCharmUses = item.uses;
+                    item.active = true; // Mark charm item as active
+                    updateMoneyDisplay();
+                    updateGlobalIndicators();
+                    showMessageBox(`Lucky Charm ACTIVATED! Increased win chance for ${item.uses} games!`, 3000);
+                } else {
+                    showMessageBox(`Not enough money for ${item.name}! You need $${item.price}.`, 2000);
+                }
+            }
+            renderShop(); // Re-render shop to reflect changes
+        }
+
+        /**
+         * Applies the cosmetic change to the game interface.
+         * @param {string} itemId - The ID of the item to apply.
+         */
+        function applyCosmetic(itemId) {
+            const item = shopItems[itemId];
+            if (!item) return;
+
+            if (item.type === 'background') {
+                body.style.background = item.value;
+            } else if (item.type === 'visual_effect') {
+                if (item.subtype === 'canvasBorder') {
+                    canvas.style.borderColor = item.value;
+                } else if (item.subtype === 'revealedFont') {
+                    // Font is applied in drawSimpleRevealGame, just update activeCosmetics
+                    // No direct DOM manipulation here
+                }
+            }
+            drawGame(); // Redraw game to apply visual effects if canvas is visible
+        }
+
+        /**
+         * Updates the global indicators (bonus, charm).
+         */
+        function updateGlobalIndicators() {
+            let indicatorText = '';
+            let showIndicator = false;
+
+            if (nextWinBonus > 1) {
+                indicatorText += `${nextWinBonus}X BONUS ACTIVE! `;
+                showIndicator = true;
+            }
+            if (luckyCharmActive) {
+                indicatorText += `LUCKY CHARM ACTIVE! (${luckyCharmUses} uses left)`;
+                showIndicator = true;
+            }
+
+            bonusIndicator.textContent = indicatorText.trim();
+            if (showIndicator) {
+                bonusIndicator.classList.remove('hidden');
+            } else {
+                bonusIndicator.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Updates the money display on the screen.
+         */
+        function updateMoneyDisplay() {
+            moneyDisplay.textContent = `$${userMoney}`;
+            renderTicketStore(); // Re-render store to update disabled states
+            renderShop(); // Re-render shop to update item states
+            updateGlobalIndicators(); // Update indicators
+        }
+
+        /**
+         * Displays a message in the message box.
+         * @param {string} msg - The message to display.
+         * @param {number} duration - How long to display the message in milliseconds.
+         * @param {boolean} showDismissBtn - If true, shows a "Got It!" button instead of auto-hiding.
+         */
+        function showMessageBox(msg, duration = 3000, showDismissBtn = false) {
+            clearTimeout(messageTimeout); // Clear any existing auto-hide timeout
+
+            messageBox.textContent = msg;
+            messageBox.style.display = 'block';
+
+            if (showDismissBtn) {
+                dismissInstructionsBtn.classList.remove('hidden');
+                canvas.removeEventListener('click', handleClick); // Disable canvas clicks during instructions
+            } else {
+                dismissInstructionsBtn.classList.add('hidden');
+                messageTimeout = setTimeout(() => {
+                    messageBox.style.display = 'none';
+                }, duration);
+            }
+        }
+
+        /**
+         * Initializes the canvas size based on its CSS dimensions.
+         * This is crucial for preventing blurry drawings on high-DPI screens
+         * and ensuring responsiveness. It also triggers a redraw of the game.
+         */
+        function setCanvasSize() {
+            // Get the computed style of the canvas element
+            const rect = canvas.getBoundingClientRect();
+            // Set the canvas's internal drawing buffer size to its actual display size
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            if (canvas.width === 0 || canvas.height === 0) {
+                console.warn('WARNING: Canvas has zero dimensions after resize. Drawing might not be visible.');
+            }
+            drawGame();
+        }
+
+        /**
+         * Helper function to get a random Uno card.
+         * @returns {object} An object with random color and number.
+         */
+        function getRandomUnoCard() {
+            const randomColor = unoColors[Math.floor(Math.random() * unoColors.length)];
+            const randomNumber = unoNumbers[Math.floor(Math.random() * unoNumbers.length)];
+            return { color: randomColor, number: randomNumber };
+        }
+
+        /**
+         * Initializes a new game grid based on the selected ticket type.
+         * @param {string} ticketTypeName - The key for the ticket type (e.g., 'luckyStars').
+         */
+        function initGame(ticketTypeName) {
+            gameOver = false; // Game is now active
+            currentTicketType = ticketTypeName; // Set the current ticket type
+            const ticket = ticketDefinitions[ticketTypeName];
+            currentTicketPrize = ticket.winningPrizes[Math.floor(Math.random() * ticket.winningPrizes.length)];
+
+            // Clear all game-specific states before initializing the new one
+            baldBuddies = [];
+            unoCards = [];
+            simpleRevealCells = [];
+            simpleRevealWinState = false;
+
+            // Calculate effective win chance
+            let effectiveWinChance = 0.3; // Base win chance for all tickets
+            if (luckyCharmActive) {
+                effectiveWinChance += shopItems.lucky_charm.winChanceBoost;
+                // Ensure win chance doesn't exceed 1.0
+                effectiveWinChance = Math.min(effectiveWinChance, 1.0);
+            }
+
+            const isWinningTicket = Math.random() < effectiveWinChance;
+
+            if (ticket.gameType === 'baldBuddies') {
+                if (isWinningTicket) {
+                    // All buddies are "bald" if scratched
+                    for (let i = 0; i < numBuddies; i++) {
+                        baldBuddies.push({ isScratchable: true, isBald: true });
+                    }
+                } else {
+                    // Losing ticket: at least one buddy will not be bald
+                    const numBaldOnLosingTicket = Math.floor(Math.random() * numBuddies); // 0, 1, or 2 bald
+                    const baldIndices = [];
+                    while (baldIndices.length < numBaldOnLosingTicket) {
+                        const randomIndex = Math.floor(Math.random() * numBuddies);
+                        if (!baldIndices.includes(randomIndex)) {
+                            baldIndices.push(randomIndex);
+                        }
+                    }
+
+                    for (let i = 0; i < numBuddies; i++) {
+                        baldBuddies.push({
+                            isScratchable: true,
+                            isBald: baldIndices.includes(i)
+                        });
+                    }
+                }
+            } else if (ticket.gameType === 'unoScratcher') {
+                const totalCards = unoGridRows * unoGridCols;
+                winningUnoCard = getRandomUnoCard(); // This is the card to match
+
+                let winningCardPlaced = false;
+
+                for (let i = 0; i < totalCards; i++) {
+                    let card = getRandomUnoCard();
+                    if (isWinningTicket && !winningCardPlaced && i === Math.floor(Math.random() * totalCards)) {
+                        // If it's a winning ticket, place the winning card at a random position
+                        card = { ...winningUnoCard }; // Copy to ensure it's the exact winning card
+                        winningCardPlaced = true;
+                    } else if (!isWinningTicket && card.color === winningUnoCard.color && card.number === winningUnoCard.number) {
+                        // If it's a losing ticket, ensure this card is NOT the winning card
+                        // Reroll until it's different
+                        while (card.color === winningUnoCard.color && card.number === winningUnoCard.number) {
+                            card = getRandomUnoCard();
+                        }
+                    }
+                    unoCards.push({ ...card, isScratched: false }); // Store card with scratchable state
+                }
+
+                // If it's a winning ticket but the winning card wasn't placed (due to random position not hitting),
+                // force place it at a random unplaced spot. This ensures winning tickets are actually winnable.
+                if (isWinningTicket && !winningCardPlaced) {
+                    const randomIndex = Math.floor(Math.random() * totalCards);
+                    unoCards[randomIndex] = { ...winningUnoCard, isScratched: false };
+                }
+            } else if (ticket.gameType === 'simpleReveal') {
+                simpleRevealWinState = isWinningTicket; // Set overall ticket win state based on calculated chance
+                const cellsContent = new Array(ticket.numCells).fill(null);
+
+                if (simpleRevealWinState) {
+                    // Place winning content
+                    if (ticket.winConditionLogic) {
+                        // For tickets with custom logic, we might not pre-place specific winning content
+                        // The logic will determine win based on revealed values
+                        // For now, just fill with random content and let the logic decide
+                        for (let i = 0; i < ticket.numCells; i++) {
+                            cellsContent[i] = ticket.contentOptions[Math.floor(Math.random() * ticket.contentOptions.length)];
+                        }
+                    } else {
+                        // For tickets with simple winningContent and winCount
+                        const winningIndices = [];
+                        while (winningIndices.length < (ticket.winCount || 1)) {
+                            const randomIndex = Math.floor(Math.random() * ticket.numCells);
+                            if (!winningIndices.includes(randomIndex)) {
+                                winningIndices.push(randomIndex);
+                            }
+                        }
+                        for (let i = 0; i < ticket.numCells; i++) {
+                            if (winningIndices.includes(i)) {
+                                cellsContent[i] = ticket.winningContent;
+                            } else {
+                                // Fill with non-winning content
+                                const nonWinningOptions = ticket.contentOptions.filter(c => c !== ticket.winningContent);
+                                cellsContent[i] = nonWinningOptions[Math.floor(Math.random() * nonWinningOptions.length)];
+                            }
+                        }
+                    }
+                } else {
+                    // Losing ticket: fill all with non-winning content
+                    for (let i = 0; i < ticket.numCells; i++) {
+                        if (ticket.winningContent) {
+                            const nonWinningOptions = ticket.contentOptions.filter(c => c !== ticket.winningContent);
+                            cellsContent[i] = nonWinningOptions[Math.floor(Math.random() * nonWinningOptions.length)];
+                        } else {
+                             // If no specific winningContent, just pick from all options
+                            cellsContent[i] = ticket.contentOptions[Math.floor(Math.random() * ticket.contentOptions.length)];
+                        }
+                    }
+                }
+
+                for (let i = 0; i < ticket.numCells; i++) {
+                    simpleRevealCells.push({
+                        isScratched: false,
+                        content: cellsContent[i] // Store the content to be revealed
+                    });
+                }
+            }
+
+            // Decrement lucky charm uses if active
+            if (luckyCharmActive) {
+                luckyCharmUses--;
+                if (luckyCharmUses <= 0) {
+                    luckyCharmActive = false;
+                    shopItems.lucky_charm.active = false; // Deactivate charm in shop
+                    luckyCharmUses = 0; // Reset uses
+                }
+            }
+            updateGlobalIndicators(); // Update indicators after charm uses might have changed
+
+            // Show the game canvas and hide the store
+            showGame();
+            setCanvasSize(); // Set canvas size and draw the initial hidden grid
+            showMessageBox(ticket.instructions, 0, true); // Show instructions with dismiss button
+        }
+
+        /**
+         * Draws the entire game grid based on the current game type.
+         */
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the entire canvas
+
+            // Apply canvas border cosmetic
+            if (activeCosmetics.canvasBorder && shopItems[activeCosmetics.canvasBorder]) {
+                canvas.style.borderColor = shopItems[activeCosmetics.canvasBorder].value;
+            } else {
+                canvas.style.borderColor = '#ffdd44'; // Default
+            }
+
+
+            if (currentTicketType === 'baldBuddies') {
+                drawBaldBuddiesGame();
+            } else if (currentTicketType === 'unoScratcher') {
+                drawUnoScratcherGame();
+            } else if (ticketDefinitions[currentTicketType] && ticketDefinitions[currentTicketType].gameType === 'simpleReveal') {
+                drawSimpleRevealGame();
+            }
+        }
+
+        /**
+         * Draws a rounded rectangle using standard Canvas API methods.
+         * @param {CanvasRenderingContext2D} ctx - The 2D rendering context.
+         * @param {number} x - The x-coordinate of the top-left corner.
+         * @param {number} y - The y-coordinate of the top-left corner.
+         * @param {number} width - The width of the rectangle.
+         * @param {number} height - The height of the rectangle.
+         * @param {number} radius - The corner radius.
+         */
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        /**
+         * Draws the Bald Buddies game.
+         */
+        function drawBaldBuddiesGame() {
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+
+            const spacing = canvasWidth / (numBuddies + 1);
+            const headRadius = Math.min(spacing / 3, canvasHeight / 4) * 0.8;
+            const startY = canvasHeight / 2 + headRadius * 0.2;
+
+            for (let i = 0; i < numBuddies; i++) {
+                const x = spacing * (i + 1);
+                const y = startY;
+
+                baldBuddies[i].x = x;
+                baldBuddies[i].y = y;
+                baldBuddies[i].radius = headRadius;
+
+                ctx.beginPath();
+                ctx.arc(x, y, headRadius, 0, Math.PI * 2);
+                ctx.fillStyle = '#f0d9c5';
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#333';
+                ctx.beginPath();
+                ctx.arc(x - headRadius * 0.3, y - headRadius * 0.3, headRadius * 0.1, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(x + headRadius * 0.3, y - headRadius * 0.3, headRadius * 0.1, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(x, y + headRadius * 0.4, headRadius * 0.2, 0, Math.PI, false);
+                ctx.stroke();
+
+                if (baldBuddies[i].isScratchable) {
+                    ctx.fillStyle = 'rgba(136, 136, 136, 0.9)';
+                    ctx.beginPath();
+                    ctx.moveTo(x - headRadius * 0.8, y - headRadius * 0.5);
+                    ctx.quadraticCurveTo(x - headRadius * 0.9, y - headRadius * 1.2, x - headRadius * 0.3, y - headRadius * 0.9);
+                    ctx.quadraticCurveTo(x, y - headRadius * 1.3, x + headRadius * 0.3, y - headRadius * 0.9);
+                    ctx.quadraticCurveTo(x + headRadius * 0.9, y - headRadius * 1.2, x + headRadius * 0.8, y - headRadius * 0.5);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    if (baldBuddies[i].isBald) {
+                        // Already bald, nothing more to draw here for hair
+                    } else {
+                        ctx.strokeStyle = '#6d4c41';
+                        ctx.lineWidth = headRadius * 0.2;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+
+                        ctx.beginPath();
+                        ctx.moveTo(x - headRadius * 0.8, y - headRadius * 0.5);
+                        ctx.quadraticCurveTo(x - headRadius * 0.9, y - headRadius * 1.2, x - headRadius * 0.3, y - headRadius * 0.9);
+                        ctx.quadraticCurveTo(x, y - headRadius * 1.3, x + headRadius * 0.3, y - headRadius * 0.9);
+                        ctx.quadraticCurveTo(x + headRadius * 0.9, y - headRadius * 1.2, x + headRadius * 0.8, y - headRadius * 0.5);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        /**
+         * Draws the Uno Scratcher game.
+         */
+        function drawUnoScratcherGame() {
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+
+            const cardAspectRatio = 1 / 1.4;
+
+            const totalCardWidths = canvasWidth * 0.8;
+            const effectiveCardWidth = totalCardWidths / unoGridCols;
+            let cardWidth = effectiveCardWidth * 0.8;
+            let cardHeight = cardWidth / cardAspectRatio;
+
+            const totalCardHeights = canvasHeight * 0.7;
+            const effectiveCardHeight = totalCardHeights / unoGridRows;
+            if (cardHeight > effectiveCardHeight * 0.8) {
+                cardHeight = effectiveCardHeight * 0.8;
+                cardWidth = cardHeight * cardAspectRatio;
+            }
+
+            const horizontalPadding = (canvasWidth - (cardWidth * unoGridCols)) / (unoGridCols + 1);
+            const verticalPadding = (canvasHeight - (cardHeight * unoGridRows) - 80) / (unoGridRows + 1);
+
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 20px Inter';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('Winning Card:', canvasWidth / 2, 10);
+
+            if (winningUnoCard) {
+                const winCardX = canvasWidth / 2;
+                const winCardY = 40;
+                const winCardDisplayWidth = cardWidth * 0.7;
+                const winCardDisplayHeight = cardHeight * 0.7;
+                const winCardRadius = 10;
+
+                ctx.fillStyle = winningUnoCard.color;
+                drawRoundedRect(ctx, winCardX - winCardDisplayWidth / 2, winCardY, winCardDisplayWidth, winCardDisplayHeight, winCardRadius);
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#fff';
+                ctx.textBaseline = 'middle';
+                ctx.font = `bold ${winCardDisplayHeight * 0.65}px Inter`;
+                ctx.fillText(winningUnoCard.number, winCardX, winCardY + winCardDisplayHeight / 2);
+            }
+
+            for (let r = 0; r < unoGridRows; r++) {
+                for (let c = 0; c < unoGridCols; c++) {
+                    const index = r * unoGridCols + c;
+                    const card = unoCards[index];
+
+                    const x = horizontalPadding + c * (cardWidth + horizontalPadding);
+                    const y = verticalPadding + r * (cardHeight + verticalPadding) + 80;
+                    const cardRadius = 10;
+
+                    card.x = x;
+                    card.y = y;
+                    card.width = cardWidth;
+                    card.height = cardHeight;
+
+                    if (card.isScratched) {
+                        ctx.fillStyle = card.color;
+                        drawRoundedRect(ctx, x, y, cardWidth, cardHeight, cardRadius);
+                        ctx.fill();
+                        ctx.strokeStyle = '#333';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#fff';
+                        ctx.textBaseline = 'middle';
+                        ctx.font = `bold ${cardHeight * 0.5}px Inter`;
+                        ctx.fillText(card.number, x + cardWidth / 2, y + cardHeight / 2);
+                    } else {
+                        ctx.fillStyle = '#888';
+                        drawRoundedRect(ctx, x, y, cardWidth, cardHeight, cardRadius);
+                        ctx.fill();
+                        ctx.strokeStyle = '#333';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        /**
+         * Draws a generic simple reveal game.
+         */
+        function drawSimpleRevealGame() {
+            const ticket = ticketDefinitions[currentTicketType];
+            const numCells = ticket.numCells;
+
+            let gridRows = 1;
+            let gridCols = numCells;
+
+            // Dynamic grid layout based on number of cells
+            if (numCells === 9) { gridRows = 3; gridCols = 3; }
+            else if (numCells === 6) { gridRows = 2; gridCols = 3; }
+            else if (numCells === 5) { gridRows = 1; gridCols = 5; }
+            else if (numCells === 4) { gridRows = 2; gridCols = 2; }
+            else if (numCells === 3) { gridRows = 1; gridCols = 3; }
+            else if (numCells === 2) { gridRows = 1; gridCols = 2; }
+            else if (numCells === 1) { gridRows = 1; gridCols = 1; }
+
+            const cellWidth = canvas.width / gridCols;
+            const cellHeight = canvas.height / gridRows;
+
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+
+            for (let i = 0; i < numCells; i++) {
+                const r = Math.floor(i / gridCols);
+                const c = i % gridCols;
+
+                const x = c * cellWidth;
+                const y = r * cellHeight;
+
+                simpleRevealCells[i].x = x;
+                simpleRevealCells[i].y = y;
+                simpleRevealCells[i].width = cellWidth;
+                simpleRevealCells[i].height = cellHeight;
+
+                // Draw cell border
+                ctx.strokeRect(x, y, cellWidth, cellHeight);
+
+                if (simpleRevealCells[i].isScratched) {
+                    // Draw revealed state
+                    ctx.fillStyle = '#eee'; // Light background for revealed
+                    ctx.fillRect(x + 2, y + 2, cellWidth - 4, cellHeight - 4);
+
+                    // Determine font size based on ticket's specific multiplier or default
+                    const fontSizeMultiplier = ticket.revealedFontSizeMultiplier || 0.45;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#333'; // Default text color
+
+                    let displayedContent = simpleRevealCells[i].content;
+
+                    // Apply active font cosmetic
+                    const currentFontItem = shopItems[activeCosmetics.revealedFont];
+                    if (currentFontItem && currentFontItem.type === 'visual_effect' && currentFontItem.subtype === 'revealedFont') {
+                        ctx.font = `${Math.min(cellWidth, cellHeight) * fontSizeMultiplier}px ${currentFontItem.value}`;
+                    } else {
+                        ctx.font = `${Math.min(cellWidth, cellHeight) * fontSizeMultiplier}px 'Bubblegum Sans', cursive`;
+                    }
+
+                    // Special handling for Coin Flip to display emojis
+                    if (currentTicketType === 'coinFlip') {
+                        ctx.font = `${Math.min(cellWidth, cellHeight) * 0.6}px 'Bubblegum Sans', cursive`; // Larger font for emojis
+                        if (simpleRevealCells[i].content === 'HEADS') {
+                            displayedContent = '👑'; // Crown emoji for Heads
+                        } else if (simpleRevealCells[i].content === 'TAILS') {
+                            displayedContent = '🦅'; // Eagle emoji for Tails
+                        }
+                    }
+
+                    // Special styling for winning content
+                    if (ticket.winningContent && simpleRevealCells[i].content === ticket.winningContent) {
+                        ctx.fillStyle = '#28a745'; // Green for winning symbol
+                    } else if (ticket.winConditionLogic && simpleRevealWinState && simpleRevealCells[i].content) {
+                        // For custom logic, if the ticket is a winner, make revealed content green
+                        ctx.fillStyle = '#28a745';
+                    } else if (ticket.winConditionLogic && !simpleRevealWinState && simpleRevealCells[i].content) {
+                        // For custom logic, if the ticket is a loser, make revealed content red
+                        ctx.fillStyle = '#dc3545';
+                    }
+
+                    ctx.fillText(displayedContent, x + cellWidth / 2, y + cellHeight / 2);
+
+                } else {
+                    // Draw scratch overlay
+                    ctx.fillStyle = '#888'; // Gray color for scratchable area
+                    ctx.fillRect(x + 2, y + 2, cellWidth - 4, cellHeight - 4);
+                }
+            }
+        }
+
+        /**
+         * Handles clicks on the canvas to reveal cells or scratch hair.
+         * @param {MouseEvent} e - The click event object.
+         */
+        function handleClick(e) {
+            // If the game is over or no ticket is active, prevent further clicks on the grid
+            if (gameOver || !currentTicketType) {
+                showMessageBox('Please buy a ticket to play!', 2000);
+                return;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            const ticket = ticketDefinitions[currentTicketType];
+
+            if (ticket.gameType === 'baldBuddies') {
+                for (let i = 0; i < numBuddies; i++) {
+                    const buddy = baldBuddies[i];
+                    const hairCenterX = buddy.x;
+                    const hairCenterY = buddy.y - buddy.radius * 0.8;
+                    const distance = Math.sqrt(
+                        (clickX - hairCenterX) ** 2 + (clickY - hairCenterY) ** 2
+                    );
+                    if (distance < buddy.radius * 0.6 && buddy.isScratchable) {
+                        buddy.isScratchable = false;
+                        drawGame();
+                        checkForWin();
+                        return;
+                    }
+                }
+            } else if (ticket.gameType === 'unoScratcher') {
+                for (let i = 0; i < unoCards.length; i++) {
+                    const card = unoCards[i];
+                    if (!card.isScratched &&
+                        clickX >= card.x && clickX <= card.x + card.width &&
+                        clickY >= card.y && clickY <= card.y + card.height) {
+                        card.isScratched = true;
+                        drawGame();
+                        checkForWin();
+                        return;
+                    }
+                }
+            } else if (ticket.gameType === 'simpleReveal') {
+                for (let i = 0; i < simpleRevealCells.length; i++) {
+                    const cell = simpleRevealCells[i];
+                    if (!cell.isScratched &&
+                        clickX >= cell.x && clickX <= cell.x + cell.width &&
+                        clickY >= cell.y && clickY <= cell.y + cell.height) {
+                        cell.isScratched = true;
+                        drawGame();
+                        checkForWin();
+                        return;
+                    }
+                }
+            }
+        }
+
+        /**
+         * Checks for a winning condition based on the current game type.
+         */
+        function checkForWin() {
+            const ticket = ticketDefinitions[currentTicketType];
+            let winner = false;
+
+            if (ticket.gameType === 'baldBuddies') {
+                let allBuddiesScratched = true;
+                let allScratchedBuddiesAreBald = true;
+
+                for (const buddy of baldBuddies) {
+                    if (buddy.isScratchable) {
+                        allBuddiesScratched = false;
+                    }
+                    if (!buddy.isScratchable && !buddy.isBald) {
+                        allScratchedBuddiesAreBald = false;
+                    }
+                }
+
+                if (allBuddiesScratched && allScratchedBuddiesAreBald) {
+                    winner = true;
+                }
+            } else if (ticket.gameType === 'unoScratcher') {
+                let allScratched = true;
+                for (const card of unoCards) {
+                    if (!card.isScratched) {
+                        allScratched = false;
+                    }
+                    if (card.isScratched && card.color === winningUnoCard.color && card.number === winningUnoCard.number) {
+                        winner = true;
+                        break;
+                    }
+                }
+                if (allScratched && !winner) {
+                    winner = false;
+                }
+            } else if (ticket.gameType === 'simpleReveal') {
+                let allScratched = true;
+                for (const cell of simpleRevealCells) {
+                    if (!cell.isScratched) {
+                        allScratched = false;
+                        break;
+                    }
+                }
+
+                if (allScratched) {
+                    if (ticket.winConditionLogic) {
+                        // Use custom win logic if defined
+                        winner = ticket.winConditionLogic(simpleRevealCells, currentTicketPrize);
+                    } else {
+                        // Default simple reveal win logic: count winning content
+                        let revealedWinningCount = 0;
+                        for (const cell of simpleRevealCells) {
+                            if (cell.isScratched && cell.content === ticket.winningContent) {
+                                revealedWinningCount++;
+                            }
+                        }
+                        winner = revealedWinningCount >= (ticket.winCount || 1);
+                    }
+                }
+            }
+
+            if (winner) {
+                const finalPrize = currentTicketPrize * nextWinBonus;
+                userMoney += finalPrize;
+                updateMoneyDisplay();
+                showMessageBox(`!!! YOU WIN $${finalPrize}${nextWinBonus > 1 ? ' (BONUS APPLIED!)' : ''} !!!`, 5000);
+
+                // Reset bonus after use
+                if (nextWinBonus > 1) {
+                    // Find the active bonus item and set its active state to false
+                    for (const bonusKey in shopItems) {
+                        if (shopItems[bonusKey].type === 'bonus' && shopItems[bonusKey].active) {
+                            shopItems[bonusKey].active = false;
+                            break;
+                        }
+                    }
+                    nextWinBonus = 1; // Reset multiplier
+                }
+
+                gameOver = true;
+                setTimeout(showStore, 3000);
+            } else {
+                let allScratched = true;
+                if (ticket.gameType === 'baldBuddies') {
+                    for (const buddy of baldBuddies) {
+                        if (buddy.isScratchable) {
+                            allScratched = false;
+                            break;
+                        }
+                    }
+                } else if (ticket.gameType === 'unoScratcher') {
+                    for (const card of unoCards) {
+                        if (!card.isScratched) {
+                            allScratched = false;
+                            break;
+                        }
+                    }
+                } else if (ticket.gameType === 'simpleReveal') {
+                    for (const cell of simpleRevealCells) {
+                        if (!cell.isScratched) {
+                            allScratched = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (allScratched) {
+                    showMessageBox('No win this time. Try again!', 3000);
+                    gameOver = true;
+                    setTimeout(showStore, 3000);
+                }
+            }
+            updateGlobalIndicators(); // Update indicators after potential bonus reset or charm use decrement
+        }
+
+        /**
+         * Handles buying a ticket from the store.
+         * @param {string} ticketTypeName - The key for the ticket type to buy.
+         */
+        function buyTicket(ticketTypeName) {
+            const ticket = ticketDefinitions[ticketTypeName];
+            if (!ticket) {
+                showMessageBox('Invalid ticket type selected.', 2000);
+                return;
+            }
+
+            if (userMoney >= ticket.price) {
+                userMoney -= ticket.price;
+                updateMoneyDisplay();
+                initGame(ticketTypeName); // Start the new game
+            } else {
+                showMessageBox(`Not enough money! You need $${ticket.price} for this ticket.`, 3000);
+            }
+        }
+
+        /**
+         * Initializes the game-specific arrays with empty placeholders or resets their state.
+         * This is called when returning to the store to clear any previous game state.
+         */
+        function initializeEmptyGameStates() {
+            baldBuddies = [];
+            unoCards = [];
+            winningUnoCard = null;
+            simpleRevealCells = [];
+            simpleRevealWinState = false;
+        }
+
+        /**
+         * Shows the game canvas and hides the store elements.
+         */
+        function showGame() {
+            ticketStoreDiv.classList.add('hidden');
+            shopContainer.classList.add('hidden'); // Hide shop
+            canvas.classList.remove('hidden');
+            backToStoreBtn.classList.add('hidden'); // Ensure this is hidden
+            // dismissInstructionsBtn.classList.add('hidden'); // This will be handled by showMessageBox
+        }
+
+        /**
+         * Shows the store elements and hides the game canvas and shop.
+         */
+        function showStore() {
+            ticketStoreDiv.classList.remove('hidden');
+            shopContainer.classList.add('hidden'); // Hide shop
+            canvas.classList.add('hidden');
+            backToStoreBtn.classList.add('hidden'); // Ensure this is hidden
+            dismissInstructionsBtn.classList.add('hidden'); // Ensure this is hidden
+
+            currentTicketType = null;
+
+            updateMoneyDisplay(); // Update money and re-render store
+            showMessageBox('Choose your next scratcher!', 2000);
+            initializeEmptyGameStates(); // Clear any game-specific drawings
+            setCanvasSize(); // Redraw blank canvas
+        }
+
+        /**
+         * Shows the shop view and hides the store and game canvas.
+         */
+        function showShop() {
+            ticketStoreDiv.classList.add('hidden');
+            canvas.classList.add('hidden');
+            dismissInstructionsBtn.classList.add('hidden'); // Hide instructions button
+            messageBox.style.display = 'none'; // Hide any current message
+            shopContainer.classList.remove('hidden');
+            renderShop(); // Render shop items
+        }
+
+
+        // Event Listeners
+        // Canvas clicks are enabled/disabled dynamically based on instruction display
+        dismissInstructionsBtn.addEventListener('click', () => {
+            messageBox.style.display = 'none';
+            dismissInstructionsBtn.classList.add('hidden');
+            canvas.addEventListener('click', handleClick); // Re-enable clicks after instructions dismissed
+        });
+
+        moneyDisplay.addEventListener('click', showShop); // Click money to open shop
+        shopBackToStoreBtn.addEventListener('click', showStore); // Back button in shop
+
+        // The backToStoreBtn is currently not used for explicit navigation,
+        // but its listener is kept here for completeness if its role changes.
+        backToStoreBtn.addEventListener('click', showStore);
+
+        // Handle window resizing to make the canvas responsive
+        window.addEventListener('resize', setCanvasSize);
+
+        // Initial setup when the page loads
+        window.onload = () => {
+            // Apply the default background and other cosmetics immediately
+            applyCosmetic('bg_default');
+            applyCosmetic('border_default');
+            applyCosmetic('font_default');
+
+            updateMoneyDisplay(); // Display initial money and render store
+            initializeEmptyGameStates(); // Initialize game arrays for a blank canvas
+            setCanvasSize(); // Set canvas size initially (will draw blank grid as gameOver is true)
+            showStore(); // Start by showing the store
+        };
+    </script>
+</body>
+</html>
+�
